@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal de TI</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#677084;--bd:#dfe3ea;--ac:#2563eb;--act:#fff;--hero:#e8f0fe}
+@media(prefers-color-scheme:dark){:root{--bg:#12151a;--card:#1b2028;--tx:#e8ebf0;--mut:#9aa4b5;--bd:#2d3542;--ac:#4f8cff;--act:#0b1220;--hero:#1a2437}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;padding:8px 0 16px;font-weight:700;font-size:1.1rem}
+.hero{background:var(--hero);border-radius:16px;padding:32px 24px;text-align:center;margin-bottom:20px}
+.hero h1{margin:0 0 8px;font-size:1.8rem}
+.hero p{margin:0 0 20px;color:var(--mut)}
+.btn{display:inline-block;background:var(--ac);color:var(--act);padding:12px 22px;border-radius:10px;font-weight:700;text-decoration:none;font-size:1.05rem}
+.btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd);font-weight:600;font-size:.95rem;padding:10px 16px;margin-left:8px}
+h2{font-size:1.2rem;margin:26px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.card .ic{font-size:1.5rem}
+.card b{display:block;margin:4px 0 2px}
+.card span,.card a{color:var(--mut);font-size:.92rem;word-break:break-word}
+.card a{color:var(--ac)}
+#q{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin-bottom:10px}
+details{background:var(--card);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px}
+summary{cursor:pointer;padding:12px 14px;font-weight:600}
+details div{padding:0 14px 14px;color:var(--mut);white-space:pre-line}
+.none{color:var(--mut);text-align:center;padding:16px;display:none}
+footer{color:var(--mut);font-size:.85rem;text-align:center;padding:24px 0}
+@media(max-width:560px){.btn.sec{margin:10px 0 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span id="empresa"></span><span style="color:var(--mut);font-weight:500;font-size:.9rem" id="hor"></span></header>
+
+  <section class="hero">
+    <h1>Precisa de ajuda da TI?</h1>
+    <p>Abra um chamado em poucos segundos: informe seu nome, descreva o problema e anexe um print.</p>
+    <a class="btn" id="abrir" href="#">Abrir chamado</a>
+    <a class="btn sec" id="acomp" href="#">Acompanhar meus chamados</a>
+  </section>
+
+  <h2>Contatos</h2>
+  <div class="grid" id="contatos"></div>
+
+  <h2>Perguntas frequentes</h2>
+  <input id="q" type="search" placeholder="Buscar nas perguntas (ex.: senha, impressora, wi-fi)">
+  <div id="faq"></div>
+  <div class="none" id="none">Nada encontrado. Se não achou sua resposta, abra um chamado.</div>
+
+  <footer id="rodape"></footer>
+</div>
+
+<script>
+/* ============ EDITE AQUI ============ */
+var CONFIG = {
+  empresa: "Nome da Empresa · TI",
+  horario: "Seg a sex, 8h às 18h",
+  urlChamados: "http://NOME-DO-SERVIDOR:8080",   // endereço do sistema de chamados
+  contatos: [
+    {icone: "📞", titulo: "Ramal / Telefone", valor: "Ramal 1000"},
+    {icone: "✉️", titulo: "E-mail", valor: "ti@suaempresa.com.br", link: "mailto:ti@suaempresa.com.br"},
+    {icone: "📍", titulo: "Onde estamos", valor: "Sala da TI, 1º andar"},
+    {icone: "🚨", titulo: "Urgência fora do horário", valor: "Telefone de plantão: (00) 00000-0000"}
+  ],
+  faq: [
+    {p: "Esqueci minha senha. O que faço?",
+     r: "Abra um chamado na categoria Acesso/Senha informando seu nome e setor. Por segurança, a TI pode pedir uma confirmação antes de redefinir."},
+    {p: "Como tirar um print da tela para anexar ao chamado?",
+     r: "Pressione Windows + Shift + S, selecione a área do erro e, no formulário do chamado, use Ctrl + V para colar.\nTambém dá para anexar a imagem pelo botão de arquivos."},
+    {p: "A impressora não imprime.",
+     r: "1. Veja se está ligada, com papel e sem mensagem de erro no visor.\n2. No computador, cancele documentos presos na fila.\n3. Se continuar, abra um chamado informando o nome ou local da impressora."},
+    {p: "Meu computador está lento.",
+     r: "Salve seu trabalho e reinicie o computador (o desligar com a tecla Shift nem sempre reinicia de fato). Se a lentidão persistir, abra um chamado e informe quando começou."},
+    {p: "Estou sem internet ou sem acesso ao Wi-Fi.",
+     r: "Confira se o cabo de rede está conectado ou se o Wi-Fi está ligado. Se só você está sem acesso, abra um chamado. Se todo o setor está sem, avise por telefone."},
+    {p: "Como acompanho meu chamado?",
+     r: "Depois de abrir, você recebe uma página de acompanhamento. Guarde o endereço. Seus chamados também aparecem na tela inicial do sistema, neste mesmo computador."},
+    {p: "O que é prioridade Alta?",
+     r: "Use Alta quando você está impedido de trabalhar ou quando o problema afeta várias pessoas. Para o restante, escolha Média ou Baixa."}
+  ]
+};
+/* ================================== */
+
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.textContent=h;return e}
+document.title=CONFIG.empresa;
+document.getElementById("empresa").textContent="🛠️ "+CONFIG.empresa;
+document.getElementById("hor").textContent=CONFIG.horario;
+document.getElementById("abrir").href=CONFIG.urlChamados;
+document.getElementById("acomp").href=CONFIG.urlChamados;
+document.getElementById("rodape").textContent=CONFIG.empresa+" · Atendimento: "+CONFIG.horario;
+
+var cg=document.getElementById("contatos");
+CONFIG.contatos.forEach(function(c){
+  var d=el("div","card");d.appendChild(el("div","ic",c.icone));d.appendChild(el("b",null,c.titulo));
+  if(c.link){var a=el("a",null,c.valor);a.href=c.link;d.appendChild(a)}else d.appendChild(el("span",null,c.valor));
+  cg.appendChild(d);
+});
+
+var fq=document.getElementById("faq"),itens=[];
+CONFIG.faq.forEach(function(f){
+  var d=el("details"),s=el("summary",null,f.p),r=el("div",null,f.r);
+  d.appendChild(s);d.appendChild(r);fq.appendChild(d);itens.push({d:d,t:(f.p+" "+f.r).toLowerCase()});
+});
+document.getElementById("q").addEventListener("input",function(e){
+  var v=e.target.value.toLowerCase().trim(),n=0;
+  itens.forEach(function(i){var ok=!v||i.t.indexOf(v)>-1;i.d.style.display=ok?"":"none";if(ok)n++;if(v&&ok)i.d.open=true;if(!v)i.d.open=false});
+  document.getElementById("none").style.display=n?"none":"block";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+SMARTCHAMADOS - MIGRACAO PARA ORACLE CLOUD (UBUNTU 24.04 ARM64)
+
+O QUE ESTA INCLUIDO
+- app.py com endpoint de backup autenticado em /tecnico/backup
+- portal e dependencias originais
+- script de instalacao para Ubuntu 24.04
+- configuracao Nginx e systemd criada pelo script
+
+IMPORTANTE: o ZIP DO PROJETO NAO CONTEM O BANCO ATUAL DO RENDER.
+O banco real, os anexos e a chave de sessao precisam ser exportados do Render.
+Nao apague nem suspenda o servico antigo ate validar a migracao.
+
+ETAPA 1 - EXPORTAR O BANCO DO RENDER
+1. Abra o site atual do SmartChamados no Render e entre em /tecnico/login.
+2. Entre com a senha atual do tecnico.
+3. Na mesma sessao, abra /tecnico/backup.
+4. O navegador baixara smartchamados-backup.zip. Esse arquivo contem chamados.db,
+   uploads/ e secret.key. Trate-o como confidencial: ele contem dados dos chamados
+   e a chave usada para as sessoes.
+5. Guarde uma segunda copia segura desse ZIP no seu computador.
+
+Se /tecnico/backup retornar 404, publique primeiro esta versao do app.py no Render,
+aguarde o deploy e tente novamente. O backup exige login de tecnico.
+
+ETAPA 2 - CRIAR A VM NA ORACLE
+1. Crie/acesse sua conta em https://cloud.oracle.com/.
+2. Use a regiao Home da conta e abra Compute > Instances > Create instance.
+3. Nome: smartchamados.
+4. Imagem: Ubuntu 24.04 (ARM64/Ampere A1), marcada como Always Free Eligible.
+5. Shape: VM.Standard.A1.Flex com 2 OCPUs e 12 GB de memoria (dentro dos limites Always Free).
+6. Rede: VCN publica com Internet Gateway e IP publico. Reserve um IP publico
+   reservado para nao mudar depois.
+7. Adicione sua chave SSH publica (OpenSSH). Guarde a chave privada no seu PC.
+8. Crie a instancia e anote o IP publico.
+
+A disponibilidade Ampere pode variar por regiao. Se aparecer "Out of host capacity",
+tente outro Availability Domain ou aguarde; nao selecione uma shape paga sem conferir.
+
+ETAPA 3 - LIBERAR PORTAS NA ORACLE
+Na VCN da instancia, abra a Security List ou Network Security Group e adicione regras
+Ingress TCP para:
+- 80, origem 0.0.0.0/0 (HTTP / validacao do certificado)
+- 443, origem 0.0.0.0/0 (HTTPS)
+A porta 22 deve ser liberada apenas para seu IP publico, sempre que possivel.
+Nao abra a porta 8080 para a internet; o Nginx acessa essa porta localmente.
+
+ETAPA 4 - ENVIAR E INSTALAR O PROJETO
+1. Extraia este ZIP no Windows.
+2. Abra PowerShell na pasta SmartChamados_corrigido.
+3. Conecte por SSH (ajuste IP e caminho da chave):
+   ssh -i "$env:USERPROFILE\\.ssh\\oracle.key" ubuntu@IP_PUBLICO
+4. Crie a pasta de destino na VM:
+   ssh -i "$env:USERPROFILE\\.ssh\\oracle.key" ubuntu@IP_PUBLICO "mkdir -p /home/ubuntu/smartchamados"
+5. Em outro PowerShell, envie a pasta do projeto (ou use SCP do ZIP e extraia na VM):
+   scp -i "$env:USERPROFILE\\.ssh\\oracle.key" -r .\\* ubuntu@IP_PUBLICO:/home/ubuntu/smartchamados/
+6. Na VM, execute:
+   cd /home/ubuntu/smartchamados
+   sudo bash oracle/setup_ubuntu.sh
+O script instala Python, Waitress, Nginx, cria o servico systemd e gera uma senha forte
+para a area tecnica. Anote a senha exibida no terminal.
+O serviço ainda nao inicia ate a restauracao do banco.
+
+ETAPA 5 - RESTAURAR OS DADOS
+No PowerShell do Windows, envie o backup:
+   scp -i "$env:USERPROFILE\\.ssh\\oracle.key" "$env:USERPROFILE\\Downloads\\smartchamados-backup.zip" ubuntu@IP_PUBLICO:/tmp/
+Na VM, execute:
+   sudo systemctl stop smartchamados || true
+   sudo unzip -o /tmp/smartchamados-backup.zip -d /var/lib/smartchamados
+   sudo chown -R smartchamados:www-data /var/lib/smartchamados
+   sudo find /var/lib/smartchamados -type d -exec chmod 750 {} \\
+   sudo find /var/lib/smartchamados -type f -exec chmod 640 {} \\
+   sudo systemctl start smartchamados
+   sudo systemctl status smartchamados --no-pager
+
+Teste no navegador: http://IP_PUBLICO/
+Entre na area tecnica usando a senha gerada pelo instalador. Os chamados antigos,
+notas e anexos devem aparecer. Confira alguns chamados antigos e abra os anexos.
+
+ETAPA 6 - HTTPS E DOMINIO
+Para HTTPS confiavel, use um dominio proprio ou um subdominio gratuito que voce controle,
+apontando um registro DNS A para o IP publico reservado da VM. Depois execute:
+   sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d SEU_DOMINIO
+O Certbot precisa que o DNS ja aponte para a VM e que a porta 80 esteja acessivel.
+Depois edite /etc/smartchamados.env e defina CHAMADOS_URL=https://SEU_DOMINIO
+Em seguida:
+   sudo systemctl restart smartchamados
+
+ETAPA 7 - TELEGRAM (SE USAR)
+Edite /etc/smartchamados.env e preencha TELEGRAM_TOKEN e TELEGRAM_CHAT_ID.
+Proteja o arquivo; nao coloque esses dados no GitHub.
+   sudo nano /etc/smartchamados.env
+   sudo systemctl restart smartchamados
+
+OPERACAO E BACKUPS
+- Status: sudo systemctl status smartchamados
+- Logs: sudo journalctl -u smartchamados -f
+- Reiniciar: sudo systemctl restart smartchamados
+- Novo backup: entre como tecnico e abra https://SEU_DOMINIO/tecnico/backup
+- Mantenha copias externas regulares do banco e anexos.
+- Nao compartilhe smartchamados-backup.zip; ele contem dados internos e secret.key.
+
+OBSERVACOES IMPORTANTES
+- Oracle Always Free A1 oferece, no limite gratuito, o equivalente a 2 OCPUs e 12 GB RAM.
+  A Oracle informa que instancias Always Free consideradas ociosas podem ser recuperadas;
+  portanto nao e garantia absoluta de disponibilidade 24/7.
+- Nao encerre o Render antes de testar banco, mensagens, anexos, login, Telegram e HTTPS.
+- O sistema usa SQLite. Mantenha apenas uma instancia ativa do SmartChamados escrevendo
+  nesse arquivo de banco; nao rode duas copias apontando para o mesmo SQLite.
+- O portal tenta carregar portal/logo.png. O arquivo de logo nao veio no ZIP recebido;
+  adicione o simbolo oficial em portal/logo.png antes da publicacao se quiser exibi-lo.

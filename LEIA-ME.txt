@@ -1,0 +1,42 @@
+SMART CHAMADOS - VERSAO COM ATUALIZACAO AUTOMATICA
+
+ALTERACOES
+- Paginas de acompanhamento de chamados consultam novas mensagens a cada 5 segundos.
+- O status do chamado e atualizado na tela sem recarregar manualmente.
+- O painel do tecnico detecta novos chamados e alteracoes recentes a cada 5 segundos.
+- Datas e horarios sao convertidos explicitamente de UTC para America/Sao_Paulo (Brasilia), independentemente do fuso do servidor.
+- O servidor usa a variavel PORT fornecida pelo Render, com CHAMADOS_PORTA como alternativa.
+- As consultas de atualizacao usam respostas sem cache.
+
+PUBLICACAO NO RENDER
+1. Substitua os arquivos do projeto pelos arquivos desta pasta, mantendo a estrutura:
+   app.py
+   requirements.txt
+   portal/index.html
+2. Build Command: pip install -r requirements.txt
+3. Start Command: python app.py
+4. Configure a variavel de ambiente CHAMADOS_SENHA com uma senha forte para o tecnico.
+5. Configure CHAMADOS_DATA para o caminho de montagem de um Persistent Disk, por exemplo /var/data,
+   e monte o disco nesse mesmo caminho. Isso preserva o SQLite, os anexos e a chave de sessao entre deploys.
+6. Opcional: configure CHAMADOS_URL=https://suport-smart-rfok.onrender.com para links enviados pelo Telegram.
+
+IMPORTANTE
+- Nao publique senhas, tokens do Telegram ou arquivos .env no ZIP/repositorio.
+- Antes de substituir o app em producao, faca backup do banco chamados.db e da pasta uploads.
+- Se o banco atual estiver em outro local, migre chamados.db e uploads para o disco persistente antes
+  de apontar CHAMADOS_DATA para /var/data; caso contrario o sistema podera iniciar um banco vazio.
+- O portal exibe o horario de atendimento informado: 08h às 18h. Para alterar, edite CONFIG.horario em portal/index.html.
+- O arquivo index-original.html e apenas uma copia da versao anterior do portal; o app serve portal/index.html.
+
+
+CORRECAO DE FUSO HORARIO
+- O banco armazena timestamps Unix (UTC). A exibicao converte explicitamente UTC para America/Sao_Paulo.
+- Exemplo: 15:37 UTC sera exibido como 12:37 em Brasilia.
+- Depois de substituir os arquivos, confirme que o Render concluiu um novo deploy.
+
+
+CORRECAO EXTRA - ATUALIZACAO DE MENSAGENS
+- A tela de detalhe consulta atualizacoes imediatamente ao abrir e a cada 3 segundos.
+- O envio de notas ocorre sem recarregar a pagina; depois do envio a tela consulta a mensagem gravada.
+- As consultas validam resposta JSON e mostram indicacao quando ha falha de conexao/sessao.
+- A atualizacao depende de o novo app.py estar publicado no Render e de todos os usuarios acessarem a mesma base de dados.
